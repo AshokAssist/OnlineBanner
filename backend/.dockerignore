@@ -1,0 +1,10 @@
+.env
+*.db
+uploads/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+venv/
+.git/
+README.md
