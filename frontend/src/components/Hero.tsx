@@ -226,7 +226,7 @@ export const Hero = () => {
                   </div>
                   <div className="bg-gray-100 rounded-xl p-4">
                     <div className="text-sm text-gray-600 mb-2">Price</div>
-                    <div className="font-semibold text-green-600">$89.99</div>
+                    <div className="font-semibold text-green-600">₹1339</div>
                   </div>
                 </div>
 

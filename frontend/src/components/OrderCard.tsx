@@ -6,7 +6,7 @@ import {
   XCircle, 
   Mail,
   Calendar,
-  DollarSign,
+  IndianRupee,
   FileText
 } from 'lucide-react';
 import { Order } from '../types';
@@ -102,7 +102,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
           </span>
           <div className="flex items-center text-green-400 font-bold text-lg">
-            <DollarSign className="w-5 h-5" />
+            <IndianRupee className="w-5 h-5" />
             {totalPrice.toFixed(2)}
           </div>
         </div>
@@ -141,7 +141,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
               </div>
               <div className="flex items-center space-x-3">
                 <span className="font-bold text-green-400 text-lg">
-                  ${Number(item.price || 0).toFixed(2)}
+                  ₹{Number(item.price || 0).toFixed(2)}
                 </span>
                 {isAdmin && onViewEmail && index === 0 && (
                   <motion.button

@@ -11,7 +11,7 @@ const showcaseItems = [
     description: 'Weather-resistant, vibrant colors that last',
     image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop',
     features: ['UV Resistant', 'Waterproof', 'HD Print Quality'],
-    price: 'From $25'
+    price: 'From ₹25'
   },
   {
     id: 2,
@@ -19,7 +19,7 @@ const showcaseItems = [
     description: 'Perfect for windy conditions and outdoor events',
     image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=400&h=300&fit=crop',
     features: ['Wind Resistant', 'Lightweight', 'Easy Installation'],
-    price: 'From $35'
+    price: 'From ₹35'
   },
   {
     id: 3,
@@ -27,7 +27,7 @@ const showcaseItems = [
     description: 'Elegant indoor displays with premium finish',
     image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=300&fit=crop',
     features: ['Wrinkle Free', 'Premium Feel', 'Reusable'],
-    price: 'From $45'
+    price: 'From ₹45'
   }
 ];
 

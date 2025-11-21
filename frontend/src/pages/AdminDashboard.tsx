@@ -7,7 +7,7 @@ import {
   CheckCircle, 
   TrendingUp,
   Users,
-  DollarSign,
+  IndianRupee,
   BarChart3
 } from 'lucide-react';
 import { ordersApi } from '../api/orders';
@@ -235,8 +235,8 @@ export const AdminDashboard: React.FC = () => {
               <p className="text-green-100">Lifetime earnings from all orders</p>
             </div>
             <div className="flex items-center">
-              <DollarSign className="w-8 h-8 text-white mr-2" />
-              <span className="text-4xl font-bold text-white">${Number(totalRevenue).toFixed(2)}</span>
+              <IndianRupee className="w-8 h-8 text-white mr-2" />
+              <span className="text-4xl font-bold text-white">{Number(totalRevenue).toFixed(2)}</span>
             </div>
           </div>
         </motion.div>

@@ -73,7 +73,7 @@ def test_order():
     if order_response.status_code == 200:
         order_data = order_response.json()
         print(f"Order created: {order_data['id']}")
-        print(f"Total price: ${order_data['total_price']}")
+        print(f"Total price: ₹{order_data['total_price']}")
     else:
         print(f"Order error: {order_response.text}")
 

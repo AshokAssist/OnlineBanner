@@ -72,7 +72,6 @@ def test_complete_flow():
         
         if test_response.status_code == 200:
             test_result = test_response.json()
-            print(f"   ✅ Form data test passed:")
             print(f"      Files: {test_result['files_count']}")
             print(f"      Configs: {test_result['configs_count']}")
             print(f"      File names: {test_result['file_names']}")
@@ -81,6 +80,7 @@ def test_complete_flow():
             return
             
     except Exception as e:
+        
         print(f"   ❌ Form data test error: {e}")
         return
     

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Eye, Download, Star } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 const Portfolio: React.FC = () => {
   const portfolioItems = [
     {
@@ -194,7 +194,9 @@ const Portfolio: React.FC = () => {
             Join hundreds of satisfied customers across Tamil Nadu. Get your custom banner designed and printed with premium quality materials.
           </p>
           <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-purple-600/25 transition-all duration-300 transform hover:scale-105">
+            <Link to="/configure">
             Start Your Order
+            </Link>
           </button>
         </motion.div>
       </div>

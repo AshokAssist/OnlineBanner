@@ -121,7 +121,7 @@ export const ConfigureBanner: React.FC = () => {
       case 'mesh':
         basePrice *= 1.2;
         break;
-      case 'flex':
+      case 'vinyl':
         basePrice *= 0.8;
         break;
       default: // vinyl
