@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings, 
@@ -15,47 +15,29 @@ import {
 import { BannerForm } from '../components/BannerForm';
 import { FileUpload } from '../components/FileUpload';
 import { BannerConfig, CartItem } from '../types';
+import { useCartStore } from '../state/cartStore';
 
 export const ConfigureBanner: React.FC = () => {
-  const [step, setStep] = useState<'config' | 'upload' | 'checkout'>('config');
+  const [step, setStep] = useState<'config' | 'upload'>('config');
   const [config, setConfig] = useState<BannerConfig | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [countryCode, setCountryCode] = useState('+91');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   
-  const countryCodes = [
-    { code: '+91', country: 'India', flag: '🇮🇳' },
-    { code: '+1', country: 'USA', flag: '🇺🇸' },
-    { code: '+44', country: 'UK', flag: '🇬🇧' },
-    { code: '+971', country: 'UAE', flag: '🇦🇪' }
-  ];
-  
-  const validatePhoneNumber = (number: string) => {
-    const cleaned = number.replace(/\D/g, '');
-    if (countryCode === '+91') {
-      if (cleaned.length !== 10) {
-        setPhoneError('Please enter 10 digits');
-        return false;
-      }
-      if (!cleaned.match(/^[6-9]/)) {
-        setPhoneError('Indian mobile numbers start with 6-9');
-        return false;
+  const location = useLocation();
+  const editItem = location.state?.editItem;
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (editItem) {
+      setConfig(editItem.config);
+      setFile(editItem.file);
+      setEditingItem(editItem);
+      if (editItem.file) {
+        setStep('upload');
       }
     }
-    setPhoneError('');
-    return true;
-  };
-  
-  const handlePhoneChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, '').slice(0, 10);
-    setPhoneNumber(cleaned);
-    validatePhoneNumber(cleaned);
-  };
-  
-  const getFullPhoneNumber = () => `${countryCode}-${phoneNumber}`;
-  const navigate = useNavigate();
+  }, [editItem]);
 
   const handleConfigSubmit = (bannerConfig: BannerConfig) => {
     setConfig(bannerConfig);
@@ -64,41 +46,32 @@ export const ConfigureBanner: React.FC = () => {
 
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
-    setStep('checkout');
+    // Don't change step in edit mode, just update the file
   };
 
-  const handleAddToCart = async () => {
-    if (!config || !file || !phoneNumber || phoneError || isPlacingOrder) return;
+  const handleAddToCart = () => {
+    if (!config || !file) return;
 
-    setIsPlacingOrder(true);
-    try {
-      const formData = new FormData();
-      formData.append('files', file);
-      formData.append('configs', JSON.stringify(config));
-      formData.append('contact_number', getFullPhoneNumber());
+    const cartItem = {
+      config,
+      file,
+      price: calculatePrice(config)
+    };
 
-      const response = await fetch('http://localhost:8000/api/orders', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        alert('Order placed successfully!');
-        navigate('/orders');
-      } else {
-        const errorData = await response.text();
-        console.error('Order creation failed:', errorData);
-        alert(`Failed to create order: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Order creation failed:', error);
-      alert('Failed to create order. Please try again.');
-    } finally {
-      setIsPlacingOrder(false);
+    const { addItem, removeItem } = useCartStore.getState();
+    
+    if (editingItem) {
+      // Remove old item and add updated one
+      removeItem(editingItem.id);
+      addItem(cartItem);
+      alert('Item updated in cart!');
+    } else {
+      // Add new item
+      addItem(cartItem);
+      alert('Item added to cart!');
     }
+    
+    navigate('/cart');
   };
 
   // Indian price calculation in INR
@@ -256,7 +229,7 @@ export const ConfigureBanner: React.FC = () => {
                   <Ruler className="w-6 h-6 text-blue-400 mr-3" />
                   <h2 className="text-2xl font-bold text-white">Banner Specifications</h2>
                 </div>
-                <BannerForm onSubmit={handleConfigSubmit} />
+                <BannerForm onSubmit={handleConfigSubmit} initialValues={editingItem?.config} isEditing={!!editingItem} />
               </div>
 
               {/* Right Side - Preview */}
@@ -280,27 +253,84 @@ export const ConfigureBanner: React.FC = () => {
                     </div>
                   </motion.div>
 
+                  {/* Order Summary if config exists */}
+                  {config && (
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                      <h4 className="text-lg font-semibold text-white mb-3">Order Summary</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between text-gray-300">
+                          <span>Size:</span>
+                          <span>{config.widthCm} × {config.heightCm} cm</span>
+                        </div>
+                        <div className="flex justify-between text-gray-300">
+                          <span>Material:</span>
+                          <span className="capitalize">{config.material}</span>
+                        </div>
+                        {config.grommets && (
+                          <div className="flex justify-between text-gray-300">
+                            <span>Grommets:</span>
+                            <span>+₹200</span>
+                          </div>
+                        )}
+                        {config.lamination && (
+                          <div className="flex justify-between text-gray-300">
+                            <span>Lamination:</span>
+                            <span>+₹300</span>
+                          </div>
+                        )}
+                        <div className="border-t border-white/20 pt-2 flex justify-between font-semibold text-white">
+                          <span>Total:</span>
+                          <span className="text-green-400">₹{calculatePrice(config).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      
+                      {file && (
+                        <div className="mt-4">
+                          <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-3 mb-3">
+                            <div className="flex items-center text-green-400 mb-1">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <span className="font-medium text-sm">File Ready</span>
+                            </div>
+                            <p className="text-xs text-gray-300 truncate">{file.name}</p>
+                          </div>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleAddToCart}
+                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                          >
+                            Add to Cart
+                            <ArrowRight className="ml-2 w-4 h-4" />
+                          </motion.button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Features */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { icon: Package, label: 'Premium Materials', desc: 'Vinyl, Mesh, Fabric' },
-                      { icon: CheckCircle, label: 'Weather Resistant', desc: 'UV Protected' },
-                      { icon: Sparkles, label: 'HD Quality', desc: '1440 DPI Print' },
-                      { icon: ArrowRight, label: 'Fast Delivery', desc: '24-48 Hours' }
-                    ].map((feature, index) => (
-                      <motion.div
-                        key={feature.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        className="bg-white/5 border border-white/10 rounded-xl p-4 text-center"
-                      >
-                        <feature.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                        <div className="text-sm font-semibold text-white">{feature.label}</div>
-                        <div className="text-xs text-gray-400">{feature.desc}</div>
-                      </motion.div>
-                    ))}
-                  </div>
+                  {!config && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { icon: Package, label: 'Premium Materials', desc: 'Vinyl, Mesh, Fabric' },
+                        { icon: CheckCircle, label: 'Weather Resistant', desc: 'UV Protected' },
+                        { icon: Sparkles, label: 'HD Quality', desc: '1440 DPI Print' },
+                        { icon: ArrowRight, label: 'Fast Delivery', desc: '24-48 Hours' }
+                      ].map((feature, index) => (
+                        <motion.div
+                          key={feature.label}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 * index }}
+                          className="bg-white/5 border border-white/10 rounded-xl p-4 text-center"
+                        >
+                          <feature.icon className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+                          <div className="text-sm font-semibold text-white">{feature.label}</div>
+                          <div className="text-xs text-gray-400">{feature.desc}</div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -332,7 +362,7 @@ export const ConfigureBanner: React.FC = () => {
                       Back to Config
                     </motion.button>
                   </div>
-                  <FileUpload onFileSelect={handleFileSelect} />
+                  <FileUpload onFileSelect={handleFileSelect} initialFile={file} />
                 </div>
               </div>
 
@@ -385,14 +415,13 @@ export const ConfigureBanner: React.FC = () => {
                     </div>
                     
                     <motion.button
-                      whileHover={{ scale: isPlacingOrder ? 1 : 1.02 }}
-                      whileTap={{ scale: isPlacingOrder ? 1 : 0.98 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={handleAddToCart}
-                      disabled={isPlacingOrder}
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-xl hover:shadow-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                     >
-                      {isPlacingOrder ? 'Placing Order...' : 'Add to Cart & Checkout'}
-                      {!isPlacingOrder && <ArrowRight className="ml-2 w-5 h-5" />}
+                      Add to Cart
+                      <ArrowRight className="ml-2 w-5 h-5" />
                     </motion.button>
                   </motion.div>
                 )}
@@ -400,100 +429,7 @@ export const ConfigureBanner: React.FC = () => {
             </motion.div>
           )}
 
-          {step === 'checkout' && config && file && (
-            <motion.div
-              key="checkout"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              className="max-w-2xl mx-auto"
-            >
-              <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 shadow-2xl">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-white">Contact Information</h2>
-                  <button
-                    onClick={() => setStep('upload')}
-                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                  >
-                    ← Back
-                  </button>
-                </div>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Contact Number *
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="bg-white/10 border border-white/20 rounded-xl px-3 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[120px]"
-                      >
-                        {countryCodes.map((country) => (
-                          <option key={country.code} value={country.code} className="bg-slate-800">
-                            {country.flag} {country.code}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="9876543210"
-                        className={`flex-1 bg-white/10 border rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 ${
-                          phoneError ? 'border-red-500 focus:ring-red-500' : 'border-white/20 focus:ring-purple-500'
-                        }`}
-                        maxLength={10}
-                      />
-                    </div>
-                    {phoneError && (
-                      <p className="text-xs text-red-400 mt-1">{phoneError}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">We'll contact you for order updates and delivery</p>
-                  </div>
 
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <h3 className="text-lg font-semibold text-white mb-3">Order Summary</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between text-gray-300">
-                        <span>Size:</span>
-                        <span>{config.widthCm} × {config.heightCm} cm</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>Material:</span>
-                        <span className="capitalize">{config.material}</span>
-                      </div>
-                      {config.grommets && (
-                        <div className="flex justify-between text-gray-300">
-                          <span>Grommets:</span>
-                          <span>+₹200</span>
-                        </div>
-                      )}
-                      {config.lamination && (
-                        <div className="flex justify-between text-gray-300">
-                          <span>Lamination:</span>
-                          <span>+₹300</span>
-                        </div>
-                      )}
-                      <div className="border-t border-white/20 pt-2 flex justify-between font-semibold text-white">
-                        <span>Total:</span>
-                        <span>₹{calculatePrice(config).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!phoneNumber.trim() || phoneError !== '' || isPlacingOrder}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
     </div>

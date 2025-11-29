@@ -11,14 +11,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # Storage
-    USE_LOCAL_STORAGE: bool = True  # Set to False for S3/MinIO
-    S3_ENDPOINT: str = "http://localhost:9000"
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
-    S3_BUCKET: str = "banner-files"
-    S3_REGION: str = "us-east-1"
-    
     # File Upload
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     ALLOWED_EXTENSIONS: list = [".jpg", ".jpeg", ".png", ".pdf"]

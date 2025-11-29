@@ -10,7 +10,7 @@ const Cart: React.FC = () => {
 
   const handleCheckout = () => {
     if (items.length > 0) {
-      navigate('/configure-banner');
+      navigate('/checkout');
     }
   };
 
@@ -135,7 +135,7 @@ const Cart: React.FC = () => {
                       {/* Actions */}
                       <div className="flex gap-2">
                         <button
-                          onClick={() => navigate('/configure-banner', { state: { editItem: item } })}
+                          onClick={() => navigate('/configure', { state: { editItem: item } })}
                           className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition-colors"
                           title="Edit"
                         >

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Image, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
@@ -7,18 +7,34 @@ interface FileUploadProps {
   onFileSelect: (file: File) => void;
   accept?: string;
   maxSize?: number; // in MB
+  initialFile?: File | null;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({ 
   onFileSelect, 
   accept = '.jpg,.jpeg,.png,.pdf',
-  maxSize = 10 
+  maxSize = 10,
+  initialFile = null
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(initialFile?.name || null);
+  
+  // Set initial preview if file exists
+  useEffect(() => {
+    if (initialFile) {
+      setFileName(initialFile.name);
+      if (initialFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreview(e.target?.result as string);
+        };
+        reader.readAsDataURL(initialFile);
+      }
+    }
+  }, [initialFile]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): string | null => {

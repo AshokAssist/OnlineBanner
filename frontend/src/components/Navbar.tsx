@@ -33,53 +33,80 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="hidden md:flex items-center space-x-6">
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <Link
+                to="/"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Home
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <Link
+                to="/portfolio"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Portfolio
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }}>
+              <Link
+                to="/configure"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Configure Banner
+              </Link>
+            </motion.div>
+            {isAuthenticated && (
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Link
+                  to="/cart"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Cart
+                </Link>
+              </motion.div>
+            )}
+            {isAuthenticated && (
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Link
+                  to="/orders"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Orders</span>
+                </Link>
+              </motion.div>
+            )}
+            {user?.isAdmin && (
+              <motion.div whileHover={{ scale: 1.05 }}>
+                <Link
+                  to="/admin"
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Admin</span>
+                </Link>
+              </motion.div>
+            )}
+            
             {isAuthenticated ? (
-              <>
-                <motion.div whileHover={{ scale: 1.05 }}>
-                  <Link
-                    to="/configure"
-                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Configure Banner
-                  </Link>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }}>
-                  <Link
-                    to="/orders"
-                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Orders</span>
-                  </Link>
-                </motion.div>
-                {user?.isAdmin && (
-                  <motion.div whileHover={{ scale: 1.05 }}>
-                    <Link
-                      to="/admin"
-                      className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>Admin</span>
-                    </Link>
-                  </motion.div>
-                )}
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 text-gray-700">
-                    <User className="w-4 h-4" />
-                    <span className="text-sm">{user?.name}</span>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={logout}
-                    className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-shadow"
-                  >
-                    Logout
-                  </motion.button>
+              <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-gray-200">
+                <div className="flex items-center space-x-2 text-gray-700">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm">{user?.name}</span>
                 </div>
-              </>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={logout}
+                  className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:shadow-lg transition-shadow"
+                >
+                  Logout
+                </motion.button>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-gray-200">
                 <motion.div whileHover={{ scale: 1.05 }}>
                   <Link
                     to="/login"
@@ -96,7 +123,7 @@ export const Navbar: React.FC = () => {
                     Register
                   </Link>
                 </motion.div>
-              </>
+              </div>
             )}
           </div>
 
@@ -120,46 +147,58 @@ export const Navbar: React.FC = () => {
               className="md:hidden overflow-hidden"
             >
               <div className="px-2 pt-2 pb-3 space-y-1 bg-white/90 backdrop-blur-sm rounded-lg mt-2 shadow-lg">
+                <Link
+                  to="/"
+                  className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/portfolio"
+                  className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Portfolio
+                </Link>
+                <Link
+                  to="/configure"
+                  className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Configure Banner
+                </Link>
+                {isAuthenticated && (
+                  <Link
+                    to="/cart"
+                    className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Cart
+                  </Link>
+                )}
+                {isAuthenticated && (
+                  <Link
+                    to="/orders"
+                    className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    My Orders
+                  </Link>
+                )}
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                )}
+                
                 {isAuthenticated ? (
                   <>
-                    <Link
-                      to="/portfolio"
-                      className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Portfolio
-                    </Link>
-                    <Link
-                      to="/configure-banner"
-                      className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Configure Banner
-                    </Link>
-                    <Link
-                      to="/cart"
-                      className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Cart
-                    </Link>
-                    <Link
-                      to="/orders"
-                      className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      My Orders
-                    </Link>
-                    {user?.isAdmin && (
-                      <Link
-                        to="/admin"
-                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        Admin
-                      </Link>
-                    )}
-                    <div className="px-3 py-2 text-gray-700 text-base font-medium border-t">
+                    <div className="px-3 py-2 text-gray-700 text-base font-medium border-t mt-2 pt-2">
                       Hello, {user?.name}
                     </div>
                     <button
@@ -174,20 +213,22 @@ export const Navbar: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Link
-                      to="/login"
-                      className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      to="/register"
-                      className="block px-3 py-2 text-blue-600 hover:text-blue-700 rounded-md text-base font-medium"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Register
-                    </Link>
+                    <div className="border-t mt-2 pt-2">
+                      <Link
+                        to="/login"
+                        className="block px-3 py-2 text-gray-700 hover:text-blue-600 rounded-md text-base font-medium"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        to="/register"
+                        className="block px-3 py-2 text-blue-600 hover:text-blue-700 rounded-md text-base font-medium"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Register
+                      </Link>
+                    </div>
                   </>
                 )}
               </div>

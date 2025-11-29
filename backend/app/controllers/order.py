@@ -25,8 +25,10 @@ class OrderController:
         self.router.post("/test")(self.test_upload)
         self.router.get("/me", response_model=List[OrderResponse])(self.get_user_orders)
         self.router.patch("/{order_id}/status", response_model=OrderResponse)(self.update_order_status)
+        self.router.patch("/items/{item_id}/status")(self.update_item_status)
         self.router.get("/{order_id}/email-content")(self.get_email_content)
         # Generic routes last
+        self.router.post("/cart", response_model=List[OrderResponse])(self.create_cart_orders)
         self.router.post("", response_model=OrderResponse)(self.create_order)
         self.router.post("/", response_model=OrderResponse)(self.create_order)
         self.router.get("", response_model=List[OrderResponse])(self.get_all_orders)
@@ -106,44 +108,21 @@ class OrderController:
         
         # Extract files, configs, and contact number from form
         for key, value in form.items():
-            print(f"DEBUG: Key={key}, Value type={type(value)}, Value={value if isinstance(value, str) else 'FILE_OBJECT'}")
             if key == 'files':
-                # Handle case where file comes as string (frontend issue)
-                if isinstance(value, str) and value == '[object Object]':
-                    # Create a mock file for testing
-                    from io import BytesIO
-                    
-                    class MockUploadFile:
-                        def __init__(self, content, filename, content_type):
-                            self.file = BytesIO(content)
-                            self.filename = filename
-                            self.content_type = content_type
-                            self.size = len(content)
-                        
-                        async def read(self):
-                            return self.file.getvalue()
-                    
-                    file_content = b"Mock file content for testing"
-                    mock_file = MockUploadFile(file_content, "test_banner.jpg", "image/jpeg")
-                    files.append(mock_file)
-                else:
-                    files.append(value)
+                files.append(value)
             elif key == 'configs':
                 configs.append(value)
             elif key == 'contact_number':
                 contact_number = value
         
-        # Set mock contact number for testing
-        if not contact_number:
-            contact_number = "+91-9876543210"
+        if not files:
+            raise HTTPException(status_code=400, detail="Design files are required")
         
-        print(f"DEBUG: Found {len(files)} files and {len(configs)} configs")
+        if not configs:
+            raise HTTPException(status_code=400, detail="Banner configuration is required")
         
         if len(files) != len(configs):
-            raise HTTPException(status_code=400, detail=f"Mismatch: {len(files)} files vs {len(configs)} configs")
-        
-        if not files or not configs:
-            raise HTTPException(status_code=400, detail="No files or configs found")
+            raise HTTPException(status_code=400, detail=f"Each banner requires a design file. Found {len(files)} files for {len(configs)} banners")
         
         items_data = []
         for config_str in configs:
@@ -185,6 +164,102 @@ class OrderController:
         
         return self._format_order_response_simple(order)
     
+    async def create_cart_orders(
+        self,
+        request: Request,
+        current_user: CurrentUser,
+        db: DatabaseSession
+    ) -> List[OrderResponse]:
+        """Create multiple orders from cart items - all succeed or all fail."""
+        form = await request.form()
+        
+        files = []
+        configs = []
+        contact_number = None
+        
+        # Extract data from form - handle multiple values with same key
+        for key, value in form.items():
+            print(f"DEBUG CART: {key} = {type(value)} - {value if isinstance(value, str) else 'FILE'}")
+        
+        # Get all files and configs using getlist()
+        files = form.getlist('files')
+        configs = form.getlist('configs')
+        contact_number = form.get('contact_number')
+        
+        print(f"DEBUG CART: After getlist - Found {len(files)} files and {len(configs)} configs")
+        
+        print(f"DEBUG CART: Found {len(files)} files and {len(configs)} configs")
+        
+        if not contact_number:
+            raise HTTPException(status_code=400, detail="Contact number is required")
+        
+        if not configs:
+            raise HTTPException(status_code=400, detail="No items to process")
+        
+        if not files:
+            raise HTTPException(status_code=400, detail="Design files are required for all banner orders")
+        
+        if len(files) != len(configs):
+            raise HTTPException(status_code=400, detail=f"Each banner requires a design file. Found {len(files)} files for {len(configs)} banners")
+        
+        # Single transaction for all cart items - all succeed or all fail
+        try:
+            order_service = OrderService(db)
+            created_orders = []
+            
+            # Validate all items first
+            validated_items = []
+            for i, (file, config_str) in enumerate(zip(files, configs)):
+                config_data = json.loads(config_str)
+                
+                # Validate config
+                backend_config = {
+                    "width_cm": config_data.get("widthCm", config_data.get("width_cm")),
+                    "height_cm": config_data.get("heightCm", config_data.get("height_cm")),
+                    "material": config_data.get("material"),
+                    "grommets": config_data.get("grommets", False),
+                    "lamination": config_data.get("lamination", False)
+                }
+                
+                if not backend_config["width_cm"] or not backend_config["height_cm"]:
+                    raise HTTPException(status_code=400, detail=f"Item {i+1}: Invalid dimensions")
+                
+                validated_items.append((file, config_data))
+            
+            # Create single order with all items
+            all_items_data = [{"config": config_data} for file, config_data in validated_items]
+            
+            # Create single order with all items
+            order = await order_service._create_order_no_transaction(
+                str(current_user.id), 
+                all_items_data, 
+                files, 
+                contact_number
+            )
+            
+            # Commit to ensure data is persisted before fetching
+            await db.commit()
+            
+            # Get order with items for proper formatting
+            order_with_items = await order_service.order_repo.get_with_items(str(order.id))
+            print(f"DEBUG CART: Order {order.id} created with {len(order_with_items.items) if order_with_items.items else 0} items")
+            if order_with_items.items:
+                for idx, item in enumerate(order_with_items.items):
+                    print(f"DEBUG CART: Item {idx+1}: {item.banner_config.width_cm}x{item.banner_config.height_cm}cm {item.banner_config.material} - ₹{item.price}")
+            created_orders = [self._format_order_response(order_with_items)]
+            
+            # Send single email with all files
+            try:
+                await order_service.send_order_email(order, current_user.name, current_user.email, files)
+            except Exception as e:
+                print(f"Warning: Email failed for order {order.id}: {e}")
+                
+            return created_orders
+                
+        except Exception as e:
+            # Transaction automatically rolls back
+            raise HTTPException(status_code=400, detail=f"Cart order creation failed: {str(e)}")
+    
     async def get_user_orders(
         self,
         current_user: CurrentUser,
@@ -203,7 +278,10 @@ class OrderController:
         """Get all orders (admin only)."""
         order_service = OrderService(db)
         orders = await order_service.get_all_orders()
-        return [self._format_order_response(order) for order in orders]
+        print(f"DEBUG: Retrieved {len(orders)} orders for admin")
+        formatted_orders = [self._format_order_response(order) for order in orders]
+        print(f"DEBUG: Formatted {len(formatted_orders)} orders for response")
+        return formatted_orders
     
     async def update_order_status(
         self,
@@ -218,6 +296,27 @@ class OrderController:
         # Get the updated order with all relationships loaded
         updated_order = await order_service.order_repo.get_with_items(order_id)
         return self._format_order_response(updated_order)
+    
+    async def update_item_status(
+        self,
+        item_id: str,
+        status_update: OrderStatusUpdate,
+        admin_user: AdminUser,
+        db: DatabaseSession
+    ):
+        """Update individual item status (admin only)."""
+        order_service = OrderService(db)
+        updated_item = await order_service.update_item_status(item_id, status_update.status)
+        
+        # Get the updated order with all items to return fresh data
+        order = await order_service.order_repo.get_with_items(updated_item.order_id)
+        
+        return {
+            "message": "Item status updated successfully",
+            "item_id": item_id,
+            "new_status": status_update.status,
+            "order_status": order.status if order else None
+        }
     
     async def get_email_content(
         self,
@@ -280,9 +379,12 @@ class OrderController:
         items = []
         if hasattr(order, 'items') and order.items:
             for item in order.items:
+                item_status = getattr(item, 'status', 'pending')
+                print(f"DEBUG FORMAT: Item {item.id} has status: {item_status}")
                 items.append({
                     "id": item.id,
                     "price": item.price,
+                    "status": item_status,
                     "banner_config": {
                         "id": item.banner_config.id,
                         "width_cm": item.banner_config.width_cm,
@@ -297,6 +399,7 @@ class OrderController:
                     "created_at": item.created_at
                 })
         
+        print(f"DEBUG FORMAT: Order {order.id} formatted with {len(items)} items")
         return OrderResponse(
             id=order.id,
             status=order.status,

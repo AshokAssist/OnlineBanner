@@ -1,11 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse
 from .config import settings
 from .controllers import create_auth_router, create_order_router
-from .services.storage import storage_service
-from .services.local_storage import LocalStorageService
+
 
 def create_application() -> FastAPI:
     """Factory function to create FastAPI application."""
@@ -44,17 +42,6 @@ def create_application() -> FastAPI:
     async def health_check():
         return {"status": "healthy"}
     
-    @app.get("/api/files/{file_key}")
-    async def serve_file(file_key: str):
-        """Serve uploaded files for local storage."""
-        if not isinstance(storage_service, LocalStorageService):
-            raise HTTPException(status_code=404, detail="File serving not available")
-        
-        file_path = storage_service.get_file_path(file_key)
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        return FileResponse(file_path)
     
     return app
 

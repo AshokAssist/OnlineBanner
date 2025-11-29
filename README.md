@@ -240,12 +240,6 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# Storage - Local storage for testing, S3/MinIO for production
-USE_LOCAL_STORAGE=true
-S3_ENDPOINT=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=banner-files
 
 # File Upload Configuration
 MAX_FILE_SIZE=10485760

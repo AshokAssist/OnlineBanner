@@ -7,9 +7,10 @@ import { useEffect, useState } from 'react';
 interface BannerFormProps {
   onSubmit: (config: BannerConfig) => void;
   initialValues?: Partial<BannerConfig>;
+  isEditing?: boolean;
 }
 
-export const BannerForm: React.FC<BannerFormProps> = ({ onSubmit, initialValues }) => {
+export const BannerForm: React.FC<BannerFormProps> = ({ onSubmit, initialValues, isEditing }) => {
   const [selectedSize, setSelectedSize] = useState('Flex Board Small');
   const [customSize, setCustomSize] = useState({ width: 100, height: 50 });
   
@@ -38,6 +39,22 @@ export const BannerForm: React.FC<BannerFormProps> = ({ onSubmit, initialValues 
       lamination: initialValues?.lamination || false,
     },
   });
+  
+  useEffect(() => {
+    if (initialValues) {
+      setValue('widthCm', initialValues.widthCm || 60);
+      setValue('heightCm', initialValues.heightCm || 90);
+      setValue('material', initialValues.material || 'vinyl');
+      setValue('grommets', initialValues.grommets || false);
+      setValue('lamination', initialValues.lamination || false);
+      
+      // Find matching size or set to custom
+      const matchingSize = indianSizes.find(s => 
+        s.width === initialValues.widthCm && s.height === initialValues.heightCm
+      );
+      setSelectedSize(matchingSize?.name || 'Custom Size');
+    }
+  }, [initialValues, setValue]);
   
   const handleSizeChange = (sizeKey: string) => {
     setSelectedSize(sizeKey);
@@ -188,7 +205,7 @@ export const BannerForm: React.FC<BannerFormProps> = ({ onSubmit, initialValues 
         type="submit"
         className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-purple-600/25"
       >
-        Continue to Upload
+        {isEditing ? 'Update Configuration' : 'Continue to Upload'}
       </button>
     </form>
   );

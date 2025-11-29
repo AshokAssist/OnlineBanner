@@ -57,11 +57,111 @@ class OrderService:
         return final_price
     
     async def create_order(self, user_id: str, items_data: List[dict], files: List[UploadFile], contact_number: str = None) -> Order:
-        """Create a new order with items and contact number."""
+        """Create a new order with items and contact number using database transaction."""
         if len(items_data) != len(files):
             raise HTTPException(status_code=400, detail="Mismatch between items and files")
         
         # Use mock contact number for testing
+        if not contact_number:
+            contact_number = "+91-9876543210"
+        
+        # Start database transaction
+        async with self.db.begin():
+            try:
+                total_price = Decimal("0.00")
+                order_items = []
+                
+                # Calculate total price first
+                for item_data in items_data:
+                    config_data = item_data.get("config", {})
+                    if isinstance(config_data, str):
+                        config_data = json.loads(config_data)
+                    
+                    width_cm = config_data.get("widthCm") or config_data.get("width_cm")
+                    height_cm = config_data.get("heightCm") or config_data.get("height_cm")
+                    
+                    if not width_cm or not height_cm:
+                        raise HTTPException(status_code=400, detail=f"Missing width_cm or height_cm in config: {config_data}")
+                    
+                    backend_config = {
+                        "width_cm": width_cm,
+                        "height_cm": height_cm,
+                        "material": config_data.get("material"),
+                        "grommets": config_data.get("grommets", False),
+                        "lamination": config_data.get("lamination", False)
+                    }
+                    
+                    price_request = PriceCalculationRequest(**backend_config)
+                    item_price = self.calculate_price(price_request)
+                    total_price += item_price
+                
+                # Validate total price
+                if total_price <= 0:
+                    raise HTTPException(status_code=400, detail="Order total must be greater than zero")
+                
+                # Create order with calculated total and contact number
+                order = Order(user_id=user_id, total_price=total_price, contact_number=contact_number)
+                order = await self.order_repo.create(order)
+                
+                # Process each item (no file storage)
+                for i, (item_data, file) in enumerate(zip(items_data, files)):
+                    config_data = item_data.get("config", {})
+                    if isinstance(config_data, str):
+                        config_data = json.loads(config_data)
+                    
+                    width_cm = config_data.get("widthCm") 
+                    height_cm = config_data.get("heightCm")
+                    
+                    backend_config = {
+                        "widthCm": width_cm,
+                        "heightCm": height_cm,
+                        "material": config_data.get("material"),
+                        "grommets": config_data.get("grommets", False),
+                        "lamination": config_data.get("lamination", False)
+                    }
+                    
+                    price_request = PriceCalculationRequest(**backend_config)
+                    item_price = self.calculate_price(price_request)
+                    
+                    # Create banner config
+                    banner_config = BannerConfig(
+                        width_cm=backend_config["widthCm"],
+                        height_cm=backend_config["heightCm"],
+                        material=backend_config["material"],
+                        grommets=backend_config["grommets"],
+                        lamination=backend_config["lamination"],
+                        calculated_price=item_price
+                    )
+                    banner_config = await self.banner_repo.create(banner_config)
+                    
+                    # Create order item (no file reference)
+                    order_item = OrderItem(
+                        order_id=order.id,
+                        banner_config_id=banner_config.id,
+                        file_record_id=None,  # No file storage
+                        price=item_price
+                    )
+                    order_items.append(order_item)
+                
+                # Add items to order
+                for item in order_items:
+                    self.db.add(item)
+                
+                # Commit transaction
+                await self.db.flush()
+                await self.db.refresh(order)
+                
+                return order
+                
+            except Exception as e:
+                # Transaction will be automatically rolled back
+                raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+    
+    async def _create_order_no_transaction(self, user_id: str, items_data: List[dict], files: List[UploadFile], contact_number: str = None) -> Order:
+        """Create order without starting new transaction - for use within existing transactions."""
+        if len(items_data) != len(files):
+            raise HTTPException(status_code=400, detail="Mismatch between items and files")
+        
         if not contact_number:
             contact_number = "+91-9876543210"
         
@@ -78,7 +178,7 @@ class OrderService:
             height_cm = config_data.get("heightCm") or config_data.get("height_cm")
             
             if not width_cm or not height_cm:
-                raise HTTPException(status_code=400, detail=f"Missing width_cm or height_cm in config: {config_data}")
+                raise HTTPException(status_code=400, detail=f"Missing dimensions in config: {config_data}")
             
             backend_config = {
                 "width_cm": width_cm,
@@ -92,61 +192,71 @@ class OrderService:
             item_price = self.calculate_price(price_request)
             total_price += item_price
         
-        # Validate total price
         if total_price <= 0:
             raise HTTPException(status_code=400, detail="Order total must be greater than zero")
         
-        # Create order with calculated total and contact number
+        # Create order
         order = Order(user_id=user_id, total_price=total_price, contact_number=contact_number)
         order = await self.order_repo.create(order)
         
-        # Process each item (no file storage)
+        # Process each item
+        print(f"DEBUG SERVICE: Processing {len(items_data)} items with {len(files)} files")
         for i, (item_data, file) in enumerate(zip(items_data, files)):
+            print(f"DEBUG SERVICE: Processing item {i+1}: {item_data}")
             config_data = item_data.get("config", {})
             if isinstance(config_data, str):
                 config_data = json.loads(config_data)
             
-            width_cm = config_data.get("widthCm") or config_data.get("width_cm")
-            height_cm = config_data.get("heightCm") or config_data.get("height_cm")
+            width_cm = config_data.get("widthCm") 
+            height_cm = config_data.get("heightCm")
             
             backend_config = {
-                "width_cm": width_cm,
-                "height_cm": height_cm,
+                "widthCm": width_cm,
+                "heightCm": height_cm,
                 "material": config_data.get("material"),
                 "grommets": config_data.get("grommets", False),
                 "lamination": config_data.get("lamination", False)
             }
             
+            print(f"DEBUG SERVICE: Item {i+1} backend_config: {backend_config}")
+            
             price_request = PriceCalculationRequest(**backend_config)
             item_price = self.calculate_price(price_request)
             
+            print(f"DEBUG SERVICE: Item {i+1} calculated price: {item_price}")
+            
             # Create banner config
             banner_config = BannerConfig(
-                width_cm=backend_config["width_cm"],
-                height_cm=backend_config["height_cm"],
+                width_cm=backend_config["widthCm"],
+                height_cm=backend_config["heightCm"],
                 material=backend_config["material"],
                 grommets=backend_config["grommets"],
                 lamination=backend_config["lamination"],
                 calculated_price=item_price
             )
             banner_config = await self.banner_repo.create(banner_config)
+            print(f"DEBUG SERVICE: Created banner_config {banner_config.id} for item {i+1}")
             
-            # Create order item (no file reference)
+            # Create order item
             order_item = OrderItem(
                 order_id=order.id,
                 banner_config_id=banner_config.id,
-                file_record_id=None,  # No file storage
+                file_record_id=None,
                 price=item_price
             )
             order_items.append(order_item)
+            print(f"DEBUG SERVICE: Added order_item {i+1} to list")
         
         # Add items to order
-        for item in order_items:
+        print(f"DEBUG SERVICE: Adding {len(order_items)} order_items to database")
+        for i, item in enumerate(order_items):
             self.db.add(item)
+            print(f"DEBUG SERVICE: Added order_item {i+1} to session")
         
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(order)
         
+        print(f"DEBUG SERVICE: Order {order.id} created successfully")
         return order
     
     async def get_user_orders(self, user_id: str) -> List[Order]:
@@ -167,6 +277,43 @@ class OrderService:
         await self.db.commit()
         await self.db.refresh(order)
         return order
+    
+    async def update_item_status(self, item_id: str, status: str):
+        """Update individual order item status and auto-update order status."""
+        from ..models.order import OrderItem
+        from sqlalchemy import select
+        
+        result = await self.db.execute(select(OrderItem).where(OrderItem.id == item_id))
+        item = result.scalar_one_or_none()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Order item not found")
+        
+        item.status = status
+        await self.db.flush()
+        
+        # Auto-update order status based on all items
+        order = await self.order_repo.get_with_items(item.order_id)
+        if order and order.items:
+            item_statuses = [getattr(item, 'status', 'pending') for item in order.items]
+            
+            # Calculate new order status
+            if all(s == 'completed' for s in item_statuses):
+                new_order_status = 'completed'
+            elif all(s == 'cancelled' for s in item_statuses):
+                new_order_status = 'cancelled'
+            elif any(s == 'processing' for s in item_statuses):
+                new_order_status = 'processing'
+            else:
+                new_order_status = 'pending'
+            
+            # Update order status if changed
+            if order.status != new_order_status:
+                order.status = new_order_status
+        
+        await self.db.commit()
+        await self.db.refresh(item)
+        return item
     
     async def send_order_email(self, order: Order, user_name: str, user_email: str, files: List[UploadFile]) -> bool:
         """Send order details and files via email."""

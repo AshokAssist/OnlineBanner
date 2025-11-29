@@ -1,0 +1,68 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+banner_pro.db
+banner_test.db
+
+# Uploaded files
+uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Development scripts
+.add_item_status.py
+check_item_status.py
+create_admin_simple.py
+.create_admin.py
+clear_orders.py
+analyze_db.py
+check_db.py
+create_tables.py
+init_db.py
+insert_test_order.py
+make_admin.py
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

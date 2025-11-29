@@ -3,7 +3,7 @@ from typing import List
 
 class Settings:
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./banner.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./banner_pro.db")
     
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -18,16 +18,7 @@ class Settings:
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173"
     ]
-    
-    # Storage
-    STORAGE_TYPE: str = os.getenv("STORAGE_TYPE", "local")  # "local" or "s3"
-    LOCAL_STORAGE_PATH: str = os.getenv("LOCAL_STORAGE_PATH", "./uploads")
-    
-    # S3 Configuration (if using S3)
-    S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-    S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "minioadmin")
-    S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "minioadmin")
-    S3_BUCKET: str = os.getenv("S3_BUCKET", "banner-files")
+     
     
     # Email Configuration
     SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")

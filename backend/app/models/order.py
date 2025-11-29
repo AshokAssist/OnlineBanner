@@ -27,6 +27,7 @@ class OrderItem(Base):
     banner_config_id = Column(String, ForeignKey("banner_configs.id"), nullable=False)
     file_record_id = Column(String, ForeignKey("file_records.id"), nullable=True)
     price = Column(Numeric(10, 2), nullable=False)
+    status = Column(String, default="pending")  # pending, processing, completed, cancelled
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships

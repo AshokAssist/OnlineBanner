@@ -10,6 +10,7 @@ export const LeadCapture = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    console.log("sending mail")
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
