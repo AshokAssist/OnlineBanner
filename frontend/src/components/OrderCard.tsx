@@ -14,15 +14,17 @@ import { Order } from '../types';
 interface OrderCardProps {
   order: Order;
   isAdmin?: boolean;
-  onStatusUpdate?: (orderId: string, status: string) => void;
+  onStatusUpdate?: (idOrItemId: string, status: string, isItem?: boolean) => void;
   onViewEmail?: (orderId: string) => void;
+  updatingItems?: Set<string>;
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({ 
   order, 
   isAdmin = false, 
   onStatusUpdate,
-  onViewEmail 
+  onViewEmail,
+  updatingItems
 }) => {
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -105,6 +107,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <IndianRupee className="w-5 h-5" />
             {totalPrice.toFixed(2)}
           </div>
+          {isAdmin && onViewEmail && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onViewEmail(order.id)}
+              className="flex items-center px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors text-sm font-medium"
+            >
+              <Mail className="w-3 h-3 mr-1" />
+              View Email
+            </motion.button>
+          )}
         </div>
       </div>
 
@@ -125,34 +138,46 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     {item.banner_config?.width_cm || item.config?.widthCm} × {item.banner_config?.height_cm || item.config?.heightCm} cm
                   </p>
                 </div>
-                <p className="text-sm text-gray-300 mb-2">
-                  Material: <span className="text-blue-400 capitalize">{item.banner_config?.material || item.config?.material}</span>
-                  {(item.banner_config?.grommets || item.config?.grommets) && (
-                    <span className="ml-2 px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">Grommets</span>
-                  )}
-                  {(item.banner_config?.lamination || item.config?.lamination) && (
-                    <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">Lamination</span>
-                  )}
-                </p>
+                <div className="text-sm text-gray-300 mb-2">
+                  <p className="mb-1">
+                    Material: <span className="text-blue-400 capitalize">{item.banner_config?.material || item.config?.material}</span>
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    {(item.banner_config?.grommets || item.config?.grommets) && (
+                      <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">Grommets</span>
+                    )}
+                    {(item.banner_config?.lamination || item.config?.lamination) && (
+                      <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">Lamination</span>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center text-gray-400 text-sm">
                   <FileText className="w-3 h-3 mr-1" />
                   {item.file_name || item.fileName}
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="font-bold text-green-400 text-lg">
-                  ₹{Number(item.price || 0).toFixed(2)}
-                </span>
-                {isAdmin && onViewEmail && index === 0 && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onViewEmail(order.id)}
-                    className="flex items-center px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors text-sm font-medium"
-                  >
-                    <Mail className="w-3 h-3 mr-1" />
-                    View Email
-                  </motion.button>
+              <div className="flex flex-col items-end space-y-2">
+                <div className="flex items-center space-x-3">
+                  <span className="font-bold text-green-400 text-lg">
+                    ₹{Number(item.price || 0).toFixed(2)}
+                  </span>
+  
+                </div>
+                {isAdmin && (
+                  <div className="flex items-center space-x-2">
+                    <label className="text-xs text-gray-400">Item:</label>
+                    <select
+                      value={item.status}
+                      onChange={(e) => onStatusUpdate && onStatusUpdate(item.id, e.target.value, true)}
+                      disabled={updatingItems?.has(item.id)}
+                      className="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="pending" className="bg-gray-800">Pending</option>
+                      <option value="processing" className="bg-gray-800">Processing</option>
+                      <option value="completed" className="bg-gray-800">Completed</option>
+                      <option value="cancelled" className="bg-gray-800">Cancelled</option>
+                    </select>
+                  </div>
                 )}
               </div>
             </div>
@@ -168,7 +193,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             </label>
             <select
               value={order.status}
-              onChange={(e) => onStatusUpdate(order.id, e.target.value)}
+              onChange={(e) => onStatusUpdate(order.id, e.target.value, false)}
               className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="pending" className="bg-gray-800">Pending</option>

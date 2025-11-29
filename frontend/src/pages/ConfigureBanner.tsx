@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import { BannerForm } from '../components/BannerForm';
 import { FileUpload } from '../components/FileUpload';
-import { BannerConfig, CartItem } from '../types';
+import { BannerConfig } from '../types';
 import { useCartStore } from '../state/cartStore';
+import { toast } from '../state/toastStore';
 
 export const ConfigureBanner: React.FC = () => {
   const [step, setStep] = useState<'config' | 'upload'>('config');
@@ -64,11 +65,11 @@ export const ConfigureBanner: React.FC = () => {
       // Remove old item and add updated one
       removeItem(editingItem.id);
       addItem(cartItem);
-      alert('Item updated in cart!');
+      toast.success('Banner Updated', 'Your banner design has been updated in cart');
     } else {
       // Add new item
       addItem(cartItem);
-      alert('Item added to cart!');
+      toast.success('Added to Cart', 'Banner design added successfully');
     }
     
     navigate('/cart');

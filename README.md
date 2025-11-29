@@ -19,13 +19,13 @@ A complete, production-ready full-stack application for an online banner printin
 - **PostgreSQL** database
 - **Alembic** for database migrations
 - **JWT** authentication with refresh tokens
-- **MinIO/S3** for file storage
+- **Email-based file delivery** for cost-effective file handling
 - **bcrypt** for password hashing
 
 ### Infrastructure
 - **Docker & Docker Compose** for containerization
 - **PostgreSQL** database container
-- **MinIO** S3-compatible storage container
+- **SMTP Email Service** for file delivery
 
 ## 🚀 Quick Start
 
@@ -59,7 +59,6 @@ This will start:
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 - **PostgreSQL**: localhost:5432
-- **MinIO Console**: http://localhost:9001 (admin/admin)
 
 ### 3. Database Setup
 
@@ -101,8 +100,6 @@ cp .env.example .env
 # Run database migrations (SQLite will auto-create)
 alembic upgrade head
 
-# Create uploads directory (for local file storage)
-mkdir -p uploads  # On Windows: mkdir uploads
 
 # Start development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -172,7 +169,6 @@ Banner_site/
 
 - **JWT Authentication** with access and refresh tokens
 - **Password Hashing** using bcrypt
-- **File Upload Validation** (MIME type, size, dimensions)
 - **CORS Configuration** for cross-origin requests
 - **SQL Injection Protection** via SQLAlchemy ORM
 - **Input Validation** using Pydantic schemas
@@ -181,16 +177,14 @@ Banner_site/
 
 ### Core Models
 - **User**: User accounts with admin privileges
-- **Order**: Customer orders with status tracking
+- **Order**: Customer orders with status tracking and contact information
 - **OrderItem**: Individual banner items in orders
 - **BannerConfig**: Banner specifications and pricing
-- **FileRecord**: Uploaded file metadata and S3 references
 
 ### Relationships
 - User → Orders (One-to-Many)
 - Order → OrderItems (One-to-Many)
 - OrderItem → BannerConfig (Many-to-One)
-- OrderItem → FileRecord (Many-to-One)
 
 ## 🎯 API Endpoints
 
@@ -203,10 +197,10 @@ Banner_site/
 ### Orders
 - `GET /api/orders/me` - Get user orders
 - `GET /api/orders` - Get all orders (admin)
-- `POST /api/orders` - Create new order
+- `POST /api/orders/cart` - Create order from cart items
 - `POST /api/orders/calculate-price` - Calculate banner price
 - `PATCH /api/orders/{id}/status` - Update order status (admin)
-- `GET /api/orders/{id}/items/{item_id}/file` - Download file (admin)
+- `GET /api/orders/{id}/email-content` - View order email content (admin)
 
 ## 🎨 Frontend Features
 
@@ -220,7 +214,7 @@ Banner_site/
 
 ### Admin Features
 - **Order Management**: View and update all orders
-- **File Downloads**: Access customer artwork files
+- **Email Content Review**: View order details and file information
 - **Status Updates**: Change order status with real-time updates
 - **Dashboard Statistics**: Order counts by status
 
@@ -265,7 +259,6 @@ VITE_API_BASE=http://localhost:8000/api
 ### 1. Environment Setup
 - Set strong `SECRET_KEY` for JWT tokens
 - Configure production database URL
-- Set up production S3 bucket or MinIO instance
 - Configure CORS origins for production domains
 
 ### 2. Database Migration
@@ -290,7 +283,7 @@ cd backend && docker build -t banner-backend .
 - **Unit Tests**: Service layer business logic
 - **Integration Tests**: API endpoints with test database
 - **Authentication Tests**: JWT token handling
-- **File Upload Tests**: Validation and S3 integration
+- **Email Delivery Tests**: SMTP integration and file attachment handling
 
 ### Test Coverage
 ```bash
@@ -302,7 +295,7 @@ pytest --cov=app tests/
 
 - **Database Indexing**: Optimized queries with proper indexes
 - **Connection Pooling**: Async SQLAlchemy with connection pooling
-- **File Storage**: S3-compatible storage for scalability
+- **Email Delivery**: SMTP-based file delivery for cost efficiency
 - **Caching**: React Query for client-side caching
 - **Lazy Loading**: Code splitting with React Router
 
@@ -335,10 +328,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
    - Check DATABASE_URL in .env file
    - Verify database credentials
 
-2. **File Upload Issues**
-   - Check MinIO is running and accessible
-   - Verify S3 credentials in .env
-   - Ensure bucket exists and has proper permissions
+2. **Email Delivery Issues**
+   - Check SMTP configuration in .env
+   - Verify email credentials are correct
+   - Ensure SMTP server allows app passwords
 
 3. **CORS Errors**
    - Update CORS_ORIGINS in backend .env
@@ -359,7 +352,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ✅ User authentication with JWT tokens  
 ✅ Banner configuration with real-time pricing  
-✅ File upload with validation and S3 storage  
+✅ File upload with email-based delivery  
 ✅ Shopping cart with localStorage persistence  
 ✅ Order management and tracking  
 ✅ Admin dashboard with order management  

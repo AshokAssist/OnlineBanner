@@ -18,6 +18,10 @@ export const Orders: React.FC = () => {
   const { data: orders, isLoading, error } = useQuery({
     queryKey: ['orders', 'user'],
     queryFn: ordersApi.getUserOrders,
+    refetchInterval: 10000, // Auto-refresh every 10 seconds
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache data
+
   });
 
   if (isLoading) {

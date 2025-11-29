@@ -31,7 +31,7 @@ const Cart: React.FC = () => {
               Start designing your custom banner and add items to your cart
             </p>
             <button
-              onClick={() => navigate('/configure-banner')}
+              onClick={() => navigate('/configure')}
               className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-purple-600/25 transition-all duration-300 transform hover:scale-105"
             >
               Start Designing
@@ -191,7 +191,7 @@ const Cart: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={() => navigate('/configure-banner')}
+                  onClick={() => navigate('/configure')}
                   className="w-full px-6 py-3 bg-white/10 text-white font-medium rounded-xl hover:bg-white/20 transition-colors"
                 >
                   Add More Items

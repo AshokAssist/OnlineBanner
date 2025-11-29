@@ -11,6 +11,7 @@ export interface CartItem {
     lamination: boolean;
   };
   file: File | null;
+  fileName?: string; // Store filename for display when file is lost
   price: number;
   quantity: number;
 }
@@ -35,6 +36,7 @@ export const useCartStore = create<CartStore>()(
           ...item,
           id: Date.now().toString(),
           quantity: 1,
+          fileName: item.file?.name, // Store filename
         };
         
         set((state) => ({
@@ -75,12 +77,13 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'banner-cart',
-      // Don't persist files in localStorage
+      // Don't persist files in localStorage but keep filename
       partialize: (state) => ({
         ...state,
         items: state.items.map(item => ({
           ...item,
-          file: null // Don't persist files
+          file: null, // Don't persist files
+          fileName: item.file?.name || item.fileName // Keep filename
         }))
       }),
     }

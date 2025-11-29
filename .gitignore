@@ -2,11 +2,15 @@
 .env
 .env.local
 .env.production
+frontend/.env
+backend/.env
 
 # Database files
 *.db
 *.sqlite
 *.sqlite3
+banner_pro.db
+banner_test.db
 
 # Uploaded files
 backend/uploads/
@@ -33,6 +37,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+package-lock.json
 
 # Build outputs
 frontend/dist/
@@ -55,3 +60,15 @@ logs/
 
 # Docker
 .docker/
+
+# Development scripts
+backend/add_item_status.py
+backend/check_item_status.py
+backend/create_admin_simple.py
+backend/clear_orders.py
+backend/analyze_db.py
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

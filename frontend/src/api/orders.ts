@@ -20,6 +20,12 @@ export const ordersApi = {
 
   getUserOrders: async (): Promise<Order[]> => {
     const response = await apiClient.get('/orders/me');
+    console.log('🔍 Frontend /orders/me response:', {
+      status: response.status,
+      data: response.data,
+      dataLength: response.data?.length,
+      firstOrder: response.data?.[0]
+    });
     return response.data;
   },
 

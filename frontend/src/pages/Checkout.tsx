@@ -1,15 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../state/cartStore';
+import { useAuthStore } from '../state/auth';
 import { CartItem } from '../types';
+import { toast } from '../state/toastStore';
 
 export const Checkout: React.FC = () => {
   const { items: cartItems, clearCart } = useCartStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [isPlacing, setIsPlacing] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneError, setPhoneError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.error('Login Required', 'Please login to place orders');
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
 
   const countryCodes = [
     { code: '+91', country: 'India', flag: '🇮🇳' },
@@ -50,37 +60,74 @@ export const Checkout: React.FC = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (cartItems.length === 0 || !phoneNumber.trim()) return;
+    if (cartItems.length === 0 || !phoneNumber.trim() || phoneError) return;
+
+    console.log('🛒 Cart items before processing:', cartItems.map((item, i) => ({
+      index: i + 1,
+      id: item.id,
+      config: item.config,
+      hasFile: !!item.file,
+      fileName: item.file?.name || item.fileName,
+      price: item.price,
+      quantity: item.quantity
+    })));
+
+    // Check if all items have files
+    const itemsWithoutFiles = cartItems.filter(item => !item.file);
+    if (itemsWithoutFiles.length > 0) {
+      console.log('❌ Items without files:', itemsWithoutFiles);
+      toast.error('Missing Files', 'Some cart items are missing files. Please reconfigure those items.');
+      return;
+    }
 
     setIsPlacing(true);
     try {
-      for (const item of cartItems) {
-        const formData = new FormData();
+      const formData = new FormData();
+      
+      // Add all files and configs to single request
+      cartItems.forEach((item, index) => {
         if (item.file) {
           formData.append('files', item.file);
+          console.log(`📤 Adding file ${index + 1}:`, {
+            name: item.file.name,
+            size: item.file.size,
+            type: item.file.type
+          });
         }
         formData.append('configs', JSON.stringify(item.config));
-        formData.append('contact_number', `${countryCode}-${phoneNumber}`);
+        console.log(`📤 Adding config ${index + 1}:`, item.config);
+      });
+      
+      formData.append('contact_number', `${countryCode}-${phoneNumber}`);
+      
+      console.log('📤 Sending cart order:', {
+        itemCount: cartItems.length,
+        contactNumber: `${countryCode}-${phoneNumber}`,
+        totalFiles: cartItems.filter(item => item.file).length,
+        totalConfigs: cartItems.length
+      });
 
-        const response = await fetch('http://localhost:8000/api/orders', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-          },
-          body: formData,
-        });
+      const response = await fetch('http://localhost:8000/api/orders/cart', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+        },
+        body: formData,
+      });
 
-        if (!response.ok) {
-          throw new Error(`Failed to create order: ${response.status}`);
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to place orders: ${response.status} - ${errorText}`);
       }
 
+      const orders = await response.json();
+      console.log('📥 Cart order response:', orders);
       clearCart();
-      alert('Orders placed successfully!');
+      toast.success('Orders Placed Successfully', `${orders.length} banner order(s) have been submitted for processing`);
       navigate('/orders');
     } catch (error) {
       console.error('Order creation failed:', error);
-      alert('Failed to place orders. Please try again.');
+      toast.error('Order Failed', 'Unable to place orders. Please check your details and try again.');
     } finally {
       setIsPlacing(false);
     }
@@ -158,7 +205,13 @@ export const Checkout: React.FC = () => {
                         </h3>
                         <div className="text-sm text-gray-300 mt-1">
                           <p>Material: {item.config.material}</p>
-                          {item.file && <p>File: {item.file.name}</p>}
+                          {item.file ? (
+                            <p>File: {item.file.name}</p>
+                          ) : item.fileName ? (
+                            <p className="text-red-400">⚠️ File missing: {item.fileName} - please reconfigure</p>
+                          ) : (
+                            <p className="text-red-400">⚠️ No file - please reconfigure</p>
+                          )}
                           {item.config.grommets && <p>• Grommets included</p>}
                           {item.config.lamination && <p>• Lamination included</p>}
                         </div>

@@ -10,6 +10,7 @@ import { Orders } from './pages/Orders';
 import { AdminDashboard } from './pages/AdminDashboard';
 import Portfolio from './pages/Portfolio';
 import Cart from './pages/Cart';
+import { NotFound } from './pages/NotFound';
 
 export const router = createBrowserRouter([
   {
@@ -34,14 +35,6 @@ export const router = createBrowserRouter([
       },
       {
         path: 'configure',
-        element: (
-          <ProtectedRoute>
-            <ConfigureBanner />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'configure-banner',
         element: (
           <ProtectedRoute>
             <ConfigureBanner />
@@ -82,17 +75,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '*',
-        element: (
-          <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-            <div className="text-center">
-              <h1 className="text-6xl font-bold text-white mb-4">404</h1>
-              <p className="text-xl text-gray-300 mb-8">Page not found</p>
-              <a href="/" className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                Go Home
-              </a>
-            </div>
-          </div>
-        ),
+        element: <NotFound />,
       },
     ],
   },

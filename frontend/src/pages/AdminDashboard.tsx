@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { 
   Shield, 
   Package, 
@@ -15,26 +16,93 @@ import { OrderCard } from '../components/OrderCard';
 
 export const AdminDashboard: React.FC = () => {
   const queryClient = useQueryClient();
+  const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
 
-  const { data: orders, isLoading, error } = useQuery({
+  const { data: orders, isLoading, error, refetch } = useQuery({
     queryKey: ['orders', 'all'],
     queryFn: ordersApi.getAllOrders,
+    refetchInterval: 10000, // Auto-refresh every 10 seconds
+    staleTime: 0, // Always consider data stale
+    cacheTime: 0, // Don't cache data
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
       ordersApi.updateOrderStatus(orderId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders', 'all'] });
+    onSuccess: async () => {
+      // Force immediate refresh
+      await refetch();
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Order status updated successfully';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     },
     onError: (error) => {
-      console.error('Failed to update order status:', error);
-      alert('Failed to update order status. Please try again.');
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Failed to update order status';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     },
   });
 
-  const handleStatusUpdate = (orderId: string, status: string) => {
-    updateStatusMutation.mutate({ orderId, status });
+  const handleStatusUpdate = async (idOrItemId: string, status: string, isItem = false) => {
+    if (isItem && updatingItems.has(idOrItemId)) {
+      return; // Prevent multiple updates
+    }
+    
+    try {
+      if (isItem) {
+        // Mark item as updating
+        setUpdatingItems(prev => new Set(prev).add(idOrItemId));
+        
+        // Update individual item status
+        const response = await fetch(`http://localhost:8000/api/orders/items/${idOrItemId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          },
+          body: JSON.stringify({ status }),
+        });
+        
+        if (response.ok) {
+          // Show success notification
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+          notification.textContent = `Item status updated to ${status}`;
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 3000);
+          
+          // Force immediate refresh
+          await refetch();
+        } else {
+          throw new Error('Failed to update item status');
+        }
+      } else {
+        // Update entire order status
+        updateStatusMutation.mutate({ orderId: idOrItemId, status });
+      }
+    } catch (error) {
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Failed to update status';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
+    } finally {
+      if (isItem) {
+        // Remove item from updating set
+        setUpdatingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(idOrItemId);
+          return newSet;
+        });
+      }
+    }
   };
 
   const handleViewEmail = async (orderId: string) => {
@@ -73,8 +141,12 @@ export const AdminDashboard: React.FC = () => {
         newWindow.document.close();
       }
     } catch (error) {
-      console.error('Failed to get email content:', error);
-      alert('Failed to load email content. Please try again.');
+      // Show error notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.textContent = 'Failed to load email content';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     }
   };
 
@@ -284,6 +356,7 @@ export const AdminDashboard: React.FC = () => {
                       isAdmin={true}
                       onStatusUpdate={handleStatusUpdate}
                       onViewEmail={handleViewEmail}
+                      updatingItems={updatingItems}
                     />
                   </motion.div>
                 ))}
